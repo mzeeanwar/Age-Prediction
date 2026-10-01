@@ -31,3 +31,12 @@ class UTKFaceDataset(Dataset):
         image = cv2.imread(path)
         image = PREPROCESS(image)
         return image, torch.tensor(age, dtype=torch.float32)
+def parse_args():
+    p = argparse.ArgumentParser()
+    p.add_argument("--data-dir", required=True)
+    p.add_argument("--epochs", type=int, default=30)
+    p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--lr", type=float, default=1e-4)
+    p.add_argument("--out", default="models/age_model.pt")
+    p.add_argument("--cuda", action="store_true")
+    return p.parse_args()
