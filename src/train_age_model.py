@@ -40,3 +40,35 @@ def parse_args():
     p.add_argument("--out", default="models/age_model.pt")
     p.add_argument("--cuda", action="store_true")
     return p.parse_args()
+
+def main():
+    args = parse_args()
+    device = "cuda" if args.cuda and torch.cuda.is_available() else "cpu"
+
+    dataset = UTKFaceDataset(args.data_dir)
+    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+
+    model = AgeEstimator(pretrained=True).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    criterion = nn.L1Loss()  # MAE in years, easy to interpret
+
+    for epoch in range(args.epochs):
+        model.train()
+        total_loss = 0.0
+        for images, ages in tqdm(loader, desc=f"Epoch {epoch + 1}/{args.epochs}"):
+            images, ages = images.to(device), ages.to(device)
+            optimizer.zero_grad()
+            preds = model(images)
+            loss = criterion(preds, ages)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item() * images.size(0)
+        print(f"Epoch {epoch + 1}: MAE = {total_loss / len(dataset):.2f} years")
+
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    torch.save(model.state_dict(), args.out)
+    print(f"Saved model to {args.out}")
+
+
+if __name__ == "__main__":
+    main()
